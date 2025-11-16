@@ -239,7 +239,7 @@ int chooseAIMove(Game& g)
 }
 
 // ---------------- Leaderboard ----------------
-// File format: txt per line with quoted name: "Player Name",wins,games, win%
+// File format: txt per line with quoted name: "Player Name": wins,games, win%
 // Example: "Player 1": Wins=0, Games=0, Win%=0.0%
 
 using LBMap = map<string, pair<int, int>>; // name -> (wins,games)
@@ -295,8 +295,8 @@ LBMap loadLeaderboard(const string& filename = "leaderboard.txt")
         }
         else
         {
-            // no quotes: name until first comma
-            size_t comma = line.find(',', pos);
+            // no quotes: name until first :
+            size_t comma = line.find(':', pos);
             if (comma == string::npos)
                 continue;
             name = line.substr(pos, comma - pos);
@@ -414,7 +414,7 @@ static string aiNameForDifficulty(Difficulty d)
 
 void updateLeaderboardOnFinish(Game& g, const string& filename = "leaderboard.txt")
 {
-    // ensure this is only called once per finished game
+    // ensures this is only called once per finished game
     if (g.leaderboardUpdated)
         return;
     LBMap board = loadLeaderboard(filename);
@@ -423,7 +423,7 @@ void updateLeaderboardOnFinish(Game& g, const string& filename = "leaderboard.tx
     string name2 = g.player2Name;
     if (g.humanVsAI)
     {
-        // map AI to difficulty-specific name
+        // map AI to a specific difficulty name
         if (name2 == "AI")
             name2 = aiNameForDifficulty(g.difficulty);
     }
@@ -632,13 +632,7 @@ void renderBoard(RenderWindow& win, const Game& g, float time, const Font& font)
     res.setFillColor(Color::White);
     if (g.finished)
     {
-        if (g.winner == Piece::Empty)
-            res.setString("Draw - Click Restart to play again");
-        else
-        {
-            string name = (g.winner == g.player1Piece) ? g.player1Name : g.player2Name;
-            res.setString(name + " wins! Click Restart to play again");
-        }
+        res.setString("Click to play again");
         FloatRect r = res.getLocalBounds();
         res.setPosition((WINDOW_W - r.width) / 2.f, footer.getPosition().y + 10);
         win.draw(res);
@@ -861,7 +855,7 @@ int main()
     Game game;
     bool restartRequested = true;
 
-    // restart button top-right
+    // restart button top right
     Button restartBtn(WINDOW_W - 90.f, BOARD_TOP / 2.f, 140.f, 40.f, Color(30, 30, 40), Color(200, 180, 40), 99, "Restart");
 
     Clock neonClock, aiClock;
@@ -942,7 +936,7 @@ int main()
                     continue;
                 }
 
-                // Game finished click -> restart
+                // Game finished click = restart
                 if (game.finished)
                 {
                     restartRequested = true;
@@ -968,12 +962,12 @@ int main()
                 }
             }
 
-            // keyboard: press L to show full leaderboard file open in external editor. (not opening editor here)
+            // keyboard: press L to show full leaderboard file in terminal. (not opening editor here)
             if (ev.type == Event::KeyPressed)
             {
                 if (ev.key.code == Keyboard::L)
                 {
-                    // No external launching; instead we'll just print to console and you can open leaderboard.txt externally
+                    // No external launching, we'll just print to terminal and you can open leaderboard.txt externally
                     LBMap board = loadLeaderboard();
                     cout << "Leaderboard contents:\n";
                     for (const auto& kv : board)
@@ -1055,7 +1049,7 @@ int main()
         lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 60);
         window.draw(lb2);
 
-        // Current turn or winner (top-center)
+        // Current turn or winner (top center)
         Text topText("", font, 30);
         if (game.finished)
         {
