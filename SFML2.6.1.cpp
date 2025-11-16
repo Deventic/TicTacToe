@@ -1,6 +1,3 @@
-// tic_tac_toe_neon_complete.cpp
-// g++ tic_tac_toe_neon_complete.cpp -lsfml-graphics -lsfml-window -lsfml-system -std=c++17 -O2
-
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <vector>
@@ -18,7 +15,7 @@ using namespace sf;
 using namespace std;
 
 constexpr int WINDOW_W = 600;
-constexpr int WINDOW_H = 720;
+constexpr int WINDOW_H = 840;
 constexpr int BOARD_SIZE = 3;
 constexpr int GAP = 14;
 constexpr int BOARD_PIX = WINDOW_W;
@@ -45,7 +42,7 @@ struct Game {
     Difficulty difficulty = Difficulty::Medium;
     bool humanVsAI = true;
     bool playerFirst = true;
-    bool leaderboardUpdated = false; // **new**: ensure we update LB only once per finish
+    bool leaderboardUpdated = false; //ensure we update LB only once per finish
     Game() { board.fill(Piece::Empty); }
     void reset() {
         board.fill(Piece::Empty);
@@ -170,8 +167,8 @@ int chooseAIMove(Game& g) {
 }
 
 // ---------------- Leaderboard ----------------
-// File format: CSV per line with quoted name: "Player Name",wins,games
-// Example: "Player 1":5,12
+// File format: txt per line with quoted name: "Player Name",wins,games, win%
+// Example: "Player 1": Wins=0, Games=0, Win%=0.0%
 
 using LBMap = map<string, pair<int, int>>; // name -> (wins,games)
 
@@ -469,10 +466,10 @@ void renderBoard(RenderWindow& win, const Game& g, float time, const Font& font)
     Text res("", font, 20);
     res.setFillColor(Color::White);
     if (g.finished) {
-        if (g.winner == Piece::Empty) res.setString("Draw - Click Restart to play again");
+        if (g.winner == Piece::Empty) res.setString("Draw - Click to play again");
         else {
             string name = (g.winner == g.player1Piece) ? g.player1Name : g.player2Name;
-            res.setString(name + " wins! Click Restart to play again");
+            res.setString(name + " wins! Click to play again");
         }
         FloatRect r = res.getLocalBounds();
         res.setPosition((WINDOW_W - r.width) / 2.f, footer.getPosition().y + 10);
@@ -776,14 +773,14 @@ int main() {
         string summary1 = leaderboardSummaryFor(board, key1);
         string summary2 = leaderboardSummaryFor(board, key2);
 
-        Text lb1("P1: " + summary1, font, 16);
+        Text lb1(key1 + ": " + summary1, font, 16);
         lb1.setFillColor(Color::White);
-        lb1.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 8);
+        lb1.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 40);
         window.draw(lb1);
 
-        Text lb2("P2: " + summary2, font, 16);
+        Text lb2(key2 + ": " + summary2, font, 16);
         lb2.setFillColor(Color::White);
-        lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 28);
+        lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 60);
         window.draw(lb2);
 
         // Current turn or winner (top-center)
