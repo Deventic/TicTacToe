@@ -1,4 +1,4 @@
-﻿// tic_tac_toe_neon_complete.cpp
+// tic_tac_toe_neon_complete.cpp
 // g++ tic_tac_toe_neon_complete.cpp -lsfml-graphics -lsfml-window -lsfml-system -std=c++17 -O2
 
 #include <SFML/Graphics.hpp>
@@ -9,6 +9,10 @@
 #include <chrono>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <map>
 
 using namespace sf;
 using namespace std;
@@ -41,24 +45,23 @@ struct Game {
     Difficulty difficulty = Difficulty::Medium;
     bool humanVsAI = true;
     bool playerFirst = true;
+    bool leaderboardUpdated = false; // **new**: ensure we update LB only once per finish
     Game() { board.fill(Piece::Empty); }
     void reset() {
         board.fill(Piece::Empty);
         finished = false;
         winner = Piece::Empty;
         winLine.clear();
+        leaderboardUpdated = false;
         // set turnPiece and currentTurnIsAI according to playerFirst and symbol assignment
         if (playerFirst) {
             turnPiece = player1Piece;
-            currentTurnIsAI = (player1Piece == player2Piece) ? false : false; // playerFirst => player's turn
+            currentTurnIsAI = false;
         }
         else {
             turnPiece = player2Piece;
             currentTurnIsAI = humanVsAI; // if AI goes first and it's vs AI -> true
         }
-        // More explicit:
-        if (playerFirst) { turnPiece = player1Piece; currentTurnIsAI = false; }
-        else { turnPiece = player2Piece; currentTurnIsAI = humanVsAI; }
     }
 };
 
@@ -166,6 +169,175 @@ int chooseAIMove(Game& g) {
     }
 }
 
+// ---------------- Leaderboard ----------------
+// File format: CSV per line with quoted name: "Player Name",wins,games
+// Example: "Player 1":5,12
+
+using LBMap = map<string, pair<int, int>>; // name -> (wins,games)
+
+LBMap loadLeaderboard(const string& filename = "leaderboard.txt") {
+    LBMap board;
+    ifstream in(filename);
+    if (!in.is_open()) return board;
+    string line;
+
+    auto parseIntAfter = [&](const string& s, size_t pos) -> int {
+        // find first digit (or optional minus) at or after pos
+        size_t i = pos;
+        while (i < s.size() && !isdigit((unsigned char)s[i]) && s[i] != '-') ++i;
+        if (i >= s.size()) return 0;
+        size_t j = i;
+        if (s[j] == '-') ++j;
+        while (j < s.size() && isdigit((unsigned char)s[j])) ++j;
+        try {
+            return stoi(s.substr(i, j - i));
+        }
+        catch (...) {
+            return 0;
+        }
+        };
+
+    while (getline(in, line)) {
+        if (line.empty()) continue;
+
+        // Extract name (prefer quoted)
+        string name;
+        size_t pos = 0;
+        while (pos < line.size() && isspace((unsigned char)line[pos])) pos++;
+        if (pos < line.size() && line[pos] == '"') {
+            size_t endq = line.find('"', pos + 1);
+            if (endq == string::npos) continue; // malformed
+            name = line.substr(pos + 1, endq - pos - 1);
+            pos = endq + 1;
+        }
+        else {
+            // no quotes: name until first comma
+            size_t comma = line.find(',', pos);
+            if (comma == string::npos) continue;
+            name = line.substr(pos, comma - pos);
+            pos = comma + 1;
+        }
+        // Trim name
+        while (!name.empty() && isspace((unsigned char)name.front())) name.erase(name.begin());
+        while (!name.empty() && isspace((unsigned char)name.back())) name.pop_back();
+
+        int wins = 0, games = 0;
+
+        // Attempt to parse labeled format: look for "Wins=" and "Games="
+        size_t wpos = line.find("Wins=", pos);
+        size_t gpos = line.find("Games=", pos);
+        if (wpos != string::npos && gpos != string::npos) {
+            wins = parseIntAfter(line, wpos + 5);
+            games = parseIntAfter(line, gpos + 6);
+        }
+        else {
+            // fallback: try to parse two numbers after the last quote/comma
+            // Collect all integer tokens after pos
+            vector<int> nums;
+            size_t i = pos;
+            while (i < line.size()) {
+                // find start of number
+                while (i < line.size() && !isdigit((unsigned char)line[i]) && line[i] != '-') ++i;
+                if (i >= line.size()) break;
+                size_t j = i;
+                if (line[j] == '-') ++j;
+                while (j < line.size() && isdigit((unsigned char)line[j])) ++j;
+                try {
+                    nums.push_back(stoi(line.substr(i, j - i)));
+                }
+                catch (...) {
+                    nums.push_back(0);
+                }
+                i = j;
+            }
+            if (nums.size() >= 2) { wins = nums[0]; games = nums[1]; }
+            else if (nums.size() == 1) { wins = nums[0]; games = 0; }
+            else { wins = 0; games = 0; }
+        }
+
+        board[name] = { wins, games };
+    }
+
+    return board;
+}
+
+static float safeWinPercent(int wins, int games) {
+    if (games == 0) return 0.f;
+    return (100.0f * wins) / games;
+}
+void saveLeaderboard(const LBMap& board, const string& filename = "leaderboard.txt") {
+    ofstream out(filename, ios::trunc);
+    if (!out.is_open()) return;
+
+    for (const auto& kv : board) {
+        const string& name = kv.first;
+        int wins = kv.second.first;
+        int games = kv.second.second;
+        float winPercent = safeWinPercent(wins, games);
+
+        out << '"' << name << '"'
+            << ": Wins=" << wins
+            << ", Games=" << games
+            << ", Win%=" << fixed << setprecision(1) << winPercent << "%\n";
+    }
+
+    out.close();
+}
+
+
+static string aiNameForDifficulty(Difficulty d) {
+    switch (d) {
+    case Difficulty::Easy: return string("AI (Easy)");
+    case Difficulty::Medium: return string("AI (Medium)");
+    case Difficulty::Hard: return string("AI (Hard)");
+    default: return string("AI");
+    }
+}
+
+void updateLeaderboardOnFinish(Game& g, const string& filename = "leaderboard.txt") {
+    // ensure this is only called once per finished game
+    if (g.leaderboardUpdated) return;
+    LBMap board = loadLeaderboard(filename);
+
+    string name1 = g.player1Name;
+    string name2 = g.player2Name;
+    if (g.humanVsAI) {
+        // map AI to difficulty-specific name
+        if (name2 == "AI") name2 = aiNameForDifficulty(g.difficulty);
+    }
+
+    // ensure entries exist
+    if (board.find(name1) == board.end()) board[name1] = { 0, 0 };
+    if (board.find(name2) == board.end()) board[name2] = { 0, 0 };
+
+    // increment games for both
+    board[name1].second += 1;
+    board[name2].second += 1;
+
+    // increment win for winner (if not draw)
+    if (g.winner == Piece::Empty) {
+        // draw - no wins incremented
+    }
+    else {
+        string winnerName = (g.winner == g.player1Piece) ? name1 : name2;
+        board[winnerName].first += 1;
+    }
+
+    saveLeaderboard(board, filename);
+    g.leaderboardUpdated = true;
+}
+
+// Helper to get string summary for a name (W/G/Win%)
+string leaderboardSummaryFor(const LBMap& board, const string& name) {
+    auto it = board.find(name);
+    if (it == board.end()) return "0/0 (0.0%)";
+    int w = it->second.first;
+    int g = it->second.second;
+    ostringstream ss;
+    ss << w << "/" << g << " (" << fixed << setprecision(1) << safeWinPercent(w, g) << "%)";
+    return ss.str();
+}
+
 // ---------------- UI Helpers ----------------
 struct Button {
     RectangleShape box;
@@ -224,10 +396,12 @@ int mousePosToIndex(const Vector2i& mp) {
     float boardLeft = 0.f, boardTop = BOARD_TOP + GAP;
     if (mp.x < boardLeft + GAP || mp.x >= boardLeft + GAP + BOARD_SIZE * (CELL_PIX + GAP)) return -1;
     if (mp.y < boardTop || mp.y >= boardTop + BOARD_SIZE * (CELL_PIX + GAP)) return -1;
-    for (int r = 0; r < BOARD_SIZE; r++) for (int c = 0; c < BOARD_SIZE; c++) {
-        float x = GAP + c * (CELL_PIX + GAP);
-        float y = BOARD_TOP + GAP + r * (CELL_PIX + GAP);
-        if (FloatRect(x, y, CELL_PIX, CELL_PIX).contains((float)mp.x, (float)mp.y)) return idx(r, c);
+    for (int r = 0; r < BOARD_SIZE; r++)
+        for (int c = 0; c < BOARD_SIZE; c++) {
+            float x = GAP + c * (CELL_PIX + GAP);
+            float y = BOARD_TOP + GAP + r * (CELL_PIX + GAP);
+            if (FloatRect(x, y, CELL_PIX, CELL_PIX).contains((float)mp.x, (float)mp.y))
+                return idx(r, c);
     }
     return -1;
 }
@@ -537,6 +711,19 @@ int main() {
                     }
                 }
             }
+
+            // keyboard: press L to show full leaderboard file open in external editor? (not opening editor here)
+            if (ev.type == Event::KeyPressed) {
+                if (ev.key.code == Keyboard::L) {
+                    // No external launching; instead we'll just print to console and you can open leaderboard.txt externally
+                    LBMap board = loadLeaderboard();
+                    cout << "Leaderboard contents:\n";
+                    for (const auto& kv : board) {
+                        cout << kv.first << " : Wins=" << kv.second.first << " Games=" << kv.second.second
+                            << " Win%=" << fixed << setprecision(1) << safeWinPercent(kv.second.first, kv.second.second) << "%\n";
+                    }
+                }
+            }
         }
 
         // Hover state
@@ -559,6 +746,11 @@ int main() {
             }
         }
 
+        // If game just finished, update leaderboard once
+        if (game.finished && !game.leaderboardUpdated) {
+            updateLeaderboardOnFinish(game);
+        }
+
         // ------------------- RENDERING -------------------
         float t = neonClock.getElapsedTime().asSeconds();
         window.clear();
@@ -574,6 +766,25 @@ int main() {
         p2.setFillColor(getColorForPiece(game.player2Piece));
         p2.setPosition(12, 36);
         window.draw(p2);
+
+        // show small leaderboard summary in footer for the two current players
+        LBMap board = loadLeaderboard();
+        string key1 = game.player1Name;
+        string key2 = game.player2Name;
+        if (game.humanVsAI && key2 == "AI") key2 = aiNameForDifficulty(game.difficulty);
+
+        string summary1 = leaderboardSummaryFor(board, key1);
+        string summary2 = leaderboardSummaryFor(board, key2);
+
+        Text lb1("P1: " + summary1, font, 16);
+        lb1.setFillColor(Color::White);
+        lb1.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 8);
+        window.draw(lb1);
+
+        Text lb2("P2: " + summary2, font, 16);
+        lb2.setFillColor(Color::White);
+        lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 28);
+        window.draw(lb2);
 
         // Current turn or winner (top-center)
         Text topText("", font, 30);
