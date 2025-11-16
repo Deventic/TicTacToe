@@ -712,7 +712,7 @@ int main() {
             // keyboard: press L to show full leaderboard file open in external editor? (not opening editor here)
             if (ev.type == Event::KeyPressed) {
                 if (ev.key.code == Keyboard::L) {
-                    // No external launching; instead we'll just print to console and you can open leaderboard.txt externally
+                    // No external launching, printing to console and you can open leaderboard.txt externally
                     LBMap board = loadLeaderboard();
                     cout << "Leaderboard contents:\n";
                     for (const auto& kv : board) {
