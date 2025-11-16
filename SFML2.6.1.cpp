@@ -15,7 +15,7 @@ using namespace sf;
 using namespace std;
 
 constexpr int WINDOW_W = 600;
-constexpr int WINDOW_H = 720;
+constexpr int WINDOW_H = 840;
 constexpr int BOARD_SIZE = 3;
 constexpr int GAP = 14;
 constexpr int BOARD_PIX = WINDOW_W;
@@ -46,14 +46,14 @@ struct Game
     Piece player1Piece = Piece::X;
     Piece player2Piece = Piece::O;
     Piece turnPiece = Piece::X;   // whose piece is the currently active turn
-    bool currentTurnIsAI = false; // true when it's AI's turn
+    bool currentTurnIsAI = false;
     bool finished = false;
     Piece winner = Piece::Empty;
     vector<int> winLine;
     Difficulty difficulty = Difficulty::Medium;
     bool humanVsAI = true;
     bool playerFirst = true;
-    bool leaderboardUpdated = false; // **new**: ensure we update LB only once per finish
+    bool leaderboardUpdated = false; //ensure we update LB only once per finish
     Game() { board.fill(Piece::Empty); }
     void reset()
     {
@@ -71,7 +71,7 @@ struct Game
         else
         {
             turnPiece = player2Piece;
-            currentTurnIsAI = humanVsAI; // if AI goes first and it's vs AI -> true
+            currentTurnIsAI = humanVsAI; // if AI goes first and it's vs AI
         }
     }
 };
@@ -81,15 +81,15 @@ inline int idx(int r, int c) { return r * BOARD_SIZE + c; }
 inline int rowOf(int i) { return i / BOARD_SIZE; }
 inline int colOf(int i) { return i % BOARD_SIZE; }
 static const int LINES[8][3] = {
-    {0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6}};
-bool isBoardFull(const array<Piece, 9> &b)
+    {0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6} };
+bool isBoardFull(const array<Piece, 9>& b)
 {
-    for (auto &p : b)
+    for (auto& p : b)
         if (p == Piece::Empty)
             return false;
     return true;
 }
-vector<int> emptyIndices(const array<Piece, 9> &b)
+vector<int> emptyIndices(const array<Piece, 9>& b)
 {
     vector<int> r;
     for (int i = 0; i < 9; i++)
@@ -98,12 +98,12 @@ vector<int> emptyIndices(const array<Piece, 9> &b)
     return r;
 }
 
-void checkFinish(Game &g)
+void checkFinish(Game& g)
 {
     g.finished = false;
     g.winner = Piece::Empty;
     g.winLine.clear();
-    for (auto &line : LINES)
+    for (auto& line : LINES)
     {
         Piece a = g.board[line[0]];
         if (a == Piece::Empty)
@@ -112,7 +112,7 @@ void checkFinish(Game &g)
         {
             g.finished = true;
             g.winner = a;
-            g.winLine = {line[0], line[1], line[2]};
+            g.winLine = { line[0], line[1], line[2] };
             return;
         }
     }
@@ -124,7 +124,7 @@ void checkFinish(Game &g)
 }
 
 // ---------------- AI ----------------
-int easyAIMove(const Game &g)
+int easyAIMove(const Game& g)
 {
     auto e = emptyIndices(g.board);
     if (e.empty())
@@ -133,9 +133,9 @@ int easyAIMove(const Game &g)
     return e[d(rng)];
 }
 
-int evaluateBoard(const array<Piece, 9> &b, Piece aiPiece)
+int evaluateBoard(const array<Piece, 9>& b, Piece aiPiece)
 {
-    for (auto &line : LINES)
+    for (auto& line : LINES)
     {
         Piece a = b[line[0]];
         if (a == Piece::Empty)
@@ -146,7 +146,7 @@ int evaluateBoard(const array<Piece, 9> &b, Piece aiPiece)
     return 0;
 }
 
-int minimax(array<Piece, 9> &b, bool maxing, int alpha, int beta, Piece aiPiece)
+int minimax(array<Piece, 9>& b, bool maxing, int alpha, int beta, Piece aiPiece)
 {
     Piece humanPiece = (aiPiece == Piece::X) ? Piece::O : Piece::X;
     int score = evaluateBoard(b, aiPiece);
@@ -186,9 +186,9 @@ int minimax(array<Piece, 9> &b, bool maxing, int alpha, int beta, Piece aiPiece)
     }
 }
 
-int hardAIMove(Game &g)
+int hardAIMove(Game& g)
 {
-    Piece aiPiece = g.player2Piece; // AI always assigned to player2 in our flow
+    Piece aiPiece = g.player2Piece; // AI always assigned to player2
     int bestVal = -10000, bestIdx = -1;
     for (int i = 0; i < 9; ++i)
         if (g.board[i] == Piece::Empty)
@@ -213,7 +213,7 @@ int hardAIMove(Game &g)
     return bestIdx;
 }
 
-int mediumAIMove(Game &g)
+int mediumAIMove(Game& g)
 {
     float r = uniform_real_distribution<float>(0.f, 1.f)(rng);
     if (r > 0.4f)
@@ -221,7 +221,7 @@ int mediumAIMove(Game &g)
     return easyAIMove(g);
 }
 
-int chooseAIMove(Game &g)
+int chooseAIMove(Game& g)
 {
     if (g.finished)
         return -1;
@@ -244,7 +244,7 @@ int chooseAIMove(Game &g)
 
 using LBMap = map<string, pair<int, int>>; // name -> (wins,games)
 
-LBMap loadLeaderboard(const string &filename = "leaderboard.txt")
+LBMap loadLeaderboard(const string& filename = "leaderboard.txt")
 {
     LBMap board;
     ifstream in(filename);
@@ -252,28 +252,28 @@ LBMap loadLeaderboard(const string &filename = "leaderboard.txt")
         return board;
     string line;
 
-    auto parseIntAfter = [&](const string &s, size_t pos) -> int
-    {
-        // find first digit (or optional minus) at or after pos
-        size_t i = pos;
-        while (i < s.size() && !isdigit((unsigned char)s[i]) && s[i] != '-')
-            ++i;
-        if (i >= s.size())
-            return 0;
-        size_t j = i;
-        if (s[j] == '-')
-            ++j;
-        while (j < s.size() && isdigit((unsigned char)s[j]))
-            ++j;
-        try
+    auto parseIntAfter = [&](const string& s, size_t pos) -> int
         {
-            return stoi(s.substr(i, j - i));
-        }
-        catch (...)
-        {
-            return 0;
-        }
-    };
+            // find first digit (or optional minus) at or after pos
+            size_t i = pos;
+            while (i < s.size() && !isdigit((unsigned char)s[i]) && s[i] != '-')
+                ++i;
+            if (i >= s.size())
+                return 0;
+            size_t j = i;
+            if (s[j] == '-')
+                ++j;
+            while (j < s.size() && isdigit((unsigned char)s[j]))
+                ++j;
+            try
+            {
+                return stoi(s.substr(i, j - i));
+            }
+            catch (...)
+            {
+                return 0;
+            }
+        };
 
     while (getline(in, line))
     {
@@ -363,7 +363,7 @@ LBMap loadLeaderboard(const string &filename = "leaderboard.txt")
             }
         }
 
-        board[name] = {wins, games};
+        board[name] = { wins, games };
     }
 
     return board;
@@ -375,15 +375,15 @@ static float safeWinPercent(int wins, int games)
         return 0.f;
     return (100.0f * wins) / games;
 }
-void saveLeaderboard(const LBMap &board, const string &filename = "leaderboard.txt")
+void saveLeaderboard(const LBMap& board, const string& filename = "leaderboard.txt")
 {
     ofstream out(filename, ios::trunc);
     if (!out.is_open())
         return;
 
-    for (const auto &kv : board)
+    for (const auto& kv : board)
     {
-        const string &name = kv.first;
+        const string& name = kv.first;
         int wins = kv.second.first;
         int games = kv.second.second;
         float winPercent = safeWinPercent(wins, games);
@@ -412,7 +412,7 @@ static string aiNameForDifficulty(Difficulty d)
     }
 }
 
-void updateLeaderboardOnFinish(Game &g, const string &filename = "leaderboard.txt")
+void updateLeaderboardOnFinish(Game& g, const string& filename = "leaderboard.txt")
 {
     // ensure this is only called once per finished game
     if (g.leaderboardUpdated)
@@ -430,9 +430,9 @@ void updateLeaderboardOnFinish(Game &g, const string &filename = "leaderboard.tx
 
     // ensure entries exist
     if (board.find(name1) == board.end())
-        board[name1] = {0, 0};
+        board[name1] = { 0, 0 };
     if (board.find(name2) == board.end())
-        board[name2] = {0, 0};
+        board[name2] = { 0, 0 };
 
     // increment games for both
     board[name1].second += 1;
@@ -454,7 +454,7 @@ void updateLeaderboardOnFinish(Game &g, const string &filename = "leaderboard.tx
 }
 
 // Helper to get string summary for a name (W/G/Win%)
-string leaderboardSummaryFor(const LBMap &board, const string &name)
+string leaderboardSummaryFor(const LBMap& board, const string& name)
 {
     auto it = board.find(name);
     if (it == board.end())
@@ -475,7 +475,7 @@ struct Button
     int id = 0;
     string label;
     Button() = default;
-    Button(float x, float y, float w, float h, Color base, Color glow, int _id, const string &text = "")
+    Button(float x, float y, float w, float h, Color base, Color glow, int _id, const string& text = "")
         : baseColor(base), glowColor(glow), id(_id), label(text)
     {
         box.setSize(Vector2f(w, h));
@@ -485,7 +485,7 @@ struct Button
         box.setOutlineThickness(4.f);
         box.setOutlineColor(glow);
     }
-    void draw(RenderWindow &win, float t, const Font &font, int charSize = 18)
+    void draw(RenderWindow& win, float t, const Font& font, int charSize = 18)
     {
         int alpha = 90 + int(70 * abs(sin(t * 3.5f)));
         if (hovered)
@@ -506,14 +506,14 @@ struct Button
     bool contains(Vector2i mp) const { return box.getGlobalBounds().contains(Vector2f((float)mp.x, (float)mp.y)); }
 };
 
-bool loadPreferredFont(Font &font)
+bool loadPreferredFont(Font& font)
 {
     const vector<string> cand = {
         "arial.ttf", "Arial.ttf",
         "C:\\Windows\\Fonts\\arial.ttf",
         "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"};
-    for (auto &p : cand)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" };
+    for (auto& p : cand)
         if (font.loadFromFile(p))
             return true;
     return false;
@@ -525,10 +525,10 @@ Vector2f cellTopLeft(int index)
     int r = rowOf(index), c = colOf(index);
     float x = GAP + c * (CELL_PIX + GAP);
     float y = BOARD_TOP + GAP + r * (CELL_PIX + GAP);
-    return {x, y};
+    return { x, y };
 }
 
-int mousePosToIndex(const Vector2i &mp)
+int mousePosToIndex(const Vector2i& mp)
 {
     float boardLeft = 0.f, boardTop = BOARD_TOP + GAP;
     if (mp.x < boardLeft + GAP || mp.x >= boardLeft + GAP + BOARD_SIZE * (CELL_PIX + GAP))
@@ -546,7 +546,7 @@ int mousePosToIndex(const Vector2i &mp)
     return -1;
 }
 
-void drawCellBackground(RenderWindow &win, float x, float y, float w, float h, const Color &fill, const Color &outline, float outlineThickness = 3.f)
+void drawCellBackground(RenderWindow& win, float x, float y, float w, float h, const Color& fill, const Color& outline, float outlineThickness = 3.f)
 {
     RectangleShape rect(Vector2f(w, h));
     rect.setPosition(x, y);
@@ -556,7 +556,7 @@ void drawCellBackground(RenderWindow &win, float x, float y, float w, float h, c
     win.draw(rect);
 }
 
-void drawX(RenderWindow &win, float cx, float cy, float size, Color color, float time, bool pulse)
+void drawX(RenderWindow& win, float cx, float cy, float size, Color color, float time, bool pulse)
 {
     if (pulse)
     {
@@ -586,7 +586,7 @@ void drawX(RenderWindow &win, float cx, float cy, float size, Color color, float
     win.draw(r2);
 }
 
-void drawO(RenderWindow &win, float cx, float cy, float size, Color color, float time, bool pulse)
+void drawO(RenderWindow& win, float cx, float cy, float size, Color color, float time, bool pulse)
 {
     if (pulse)
     {
@@ -606,7 +606,7 @@ void drawO(RenderWindow &win, float cx, float cy, float size, Color color, float
     win.draw(circ);
 }
 
-void renderBoard(RenderWindow &win, const Game &g, float time, const Font &font)
+void renderBoard(RenderWindow& win, const Game& g, float time, const Font& font)
 {
     RectangleShape bg(Vector2f(WINDOW_W, WINDOW_H));
     bg.setFillColor(Color(28, 30, 40));
@@ -646,7 +646,7 @@ void renderBoard(RenderWindow &win, const Game &g, float time, const Font &font)
 }
 
 // ---------------- Menus (blocking loops) ----------------
-int playerTypeMenu(RenderWindow &win, const Font &font)
+int playerTypeMenu(RenderWindow& win, const Font& font)
 {
     vector<Button> btns;
     btns.emplace_back(WINDOW_W / 2.f, WINDOW_H / 2.f - 60, 300, 90, Color(30, 30, 40), Color(0, 180, 255), 1, "Human vs Human");
@@ -662,24 +662,24 @@ int playerTypeMenu(RenderWindow &win, const Font &font)
             if (ev.type == Event::MouseButtonPressed && ev.mouseButton.button == Mouse::Left)
             {
                 Vector2i mp = Mouse::getPosition(win);
-                for (auto &b : btns)
+                for (auto& b : btns)
                     if (b.contains(mp))
                         return b.id;
             }
         }
         Vector2i mp = Mouse::getPosition(win);
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.hovered = b.contains(mp);
         float t = clock.getElapsedTime().asSeconds();
         win.clear(Color(20, 22, 28));
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.draw(win, t, font, 20);
         win.display();
     }
     return 1;
 }
 
-Piece symbolMenu(RenderWindow &win, const Font &font)
+Piece symbolMenu(RenderWindow& win, const Font& font)
 {
     vector<Button> btns;
     btns.emplace_back(WINDOW_W / 2.f, WINDOW_H / 2.f - 60, 200, 80, Color(30, 30, 40), Color(255, 100, 100), 1, "Play as X");
@@ -695,24 +695,24 @@ Piece symbolMenu(RenderWindow &win, const Font &font)
             if (ev.type == Event::MouseButtonPressed && ev.mouseButton.button == Mouse::Left)
             {
                 Vector2i mp = Mouse::getPosition(win);
-                for (auto &b : btns)
+                for (auto& b : btns)
                     if (b.contains(mp))
                         return (b.id == 1) ? Piece::X : Piece::O;
             }
         }
         Vector2i mp = Mouse::getPosition(win);
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.hovered = b.contains(mp);
         float t = clock.getElapsedTime().asSeconds();
         win.clear(Color(20, 22, 28));
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.draw(win, t, font, 20);
         win.display();
     }
     return Piece::X;
 }
 
-bool firstTurnMenu(RenderWindow &win, const Font &font, const string &p1, const string &p2, bool vsAI)
+bool firstTurnMenu(RenderWindow& win, const Font& font, const string& p1, const string& p2, bool vsAI)
 {
     vector<Button> btns;
     btns.emplace_back(WINDOW_W / 2.f, WINDOW_H / 2.f - 60, 260, 80, Color(30, 30, 40), Color(255, 200, 0), 1, p1 + " first");
@@ -729,24 +729,24 @@ bool firstTurnMenu(RenderWindow &win, const Font &font, const string &p1, const 
             if (ev.type == Event::MouseButtonPressed && ev.mouseButton.button == Mouse::Left)
             {
                 Vector2i mp = Mouse::getPosition(win);
-                for (auto &b : btns)
+                for (auto& b : btns)
                     if (b.contains(mp))
                         return b.id == 1;
             }
         }
         Vector2i mp = Mouse::getPosition(win);
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.hovered = b.contains(mp);
         float t = clock.getElapsedTime().asSeconds();
         win.clear(Color(20, 22, 28));
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.draw(win, t, font, 18);
         win.display();
     }
     return true;
 }
 
-Difficulty aiDifficultyMenu(RenderWindow &win, const Font &font)
+Difficulty aiDifficultyMenu(RenderWindow& win, const Font& font)
 {
     vector<Button> btns;
     btns.emplace_back(WINDOW_W / 2.f, WINDOW_H / 2.f - 80, 220, 70, Color(30, 30, 40), Color(200, 200, 200), 1, "Easy");
@@ -763,18 +763,18 @@ Difficulty aiDifficultyMenu(RenderWindow &win, const Font &font)
             if (ev.type == Event::MouseButtonPressed && ev.mouseButton.button == Mouse::Left)
             {
                 Vector2i mp = Mouse::getPosition(win);
-                for (auto &b : btns)
+                for (auto& b : btns)
                     if (b.contains(mp))
                         return (b.id == 1) ? Difficulty::Easy : (b.id == 2) ? Difficulty::Medium
-                                                                            : Difficulty::Hard;
+                        : Difficulty::Hard;
             }
         }
         Vector2i mp = Mouse::getPosition(win);
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.hovered = b.contains(mp);
         float t = clock.getElapsedTime().asSeconds();
         win.clear(Color(20, 22, 28));
-        for (auto &b : btns)
+        for (auto& b : btns)
             b.draw(win, t, font, 18);
         win.display();
     }
@@ -782,7 +782,7 @@ Difficulty aiDifficultyMenu(RenderWindow &win, const Font &font)
 }
 
 // Name input with event handling (Enter confirms)
-string nameInput(RenderWindow &win, const Font &font, const string &prompt)
+string nameInput(RenderWindow& win, const Font& font, const string& prompt)
 {
     RectangleShape box(Vector2f(360.f, 52.f));
     box.setOrigin(box.getSize().x / 2.f, box.getSize().y / 2.f);
@@ -868,13 +868,13 @@ int main()
     bool aiWaiting = false;
 
     auto getColorForPiece = [](Piece p) -> Color
-    {
-        if (p == Piece::X)
-            return Color(255, 120, 110);
-        if (p == Piece::O)
-            return Color(110, 190, 255);
-        return Color::White;
-    };
+        {
+            if (p == Piece::X)
+                return Color(255, 120, 110);
+            if (p == Piece::O)
+                return Color(110, 190, 255);
+            return Color::White;
+        };
 
     while (window.isOpen())
     {
@@ -976,10 +976,10 @@ int main()
                     // No external launching; instead we'll just print to console and you can open leaderboard.txt externally
                     LBMap board = loadLeaderboard();
                     cout << "Leaderboard contents:\n";
-                    for (const auto &kv : board)
+                    for (const auto& kv : board)
                     {
                         cout << kv.first << " : Wins=" << kv.second.first << " Games=" << kv.second.second
-                             << " Win%=" << fixed << setprecision(1) << safeWinPercent(kv.second.first, kv.second.second) << "%\n";
+                            << " Win%=" << fixed << setprecision(1) << safeWinPercent(kv.second.first, kv.second.second) << "%\n";
                     }
                 }
             }
