@@ -1045,14 +1045,14 @@ int main()
         string summary1 = leaderboardSummaryFor(board, key1);
         string summary2 = leaderboardSummaryFor(board, key2);
 
-        Text lb1("P1: " + summary1, font, 16);
+        Text lb1(key1 + ": " + summary1, font, 16);
         lb1.setFillColor(Color::White);
-        lb1.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 8);
+        lb1.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 40);
         window.draw(lb1);
 
-        Text lb2("P2: " + summary2, font, 16);
+        Text lb2(key2 + ": " + summary2, font, 16);
         lb2.setFillColor(Color::White);
-        lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 28);
+        lb2.setPosition(12, BOARD_TOP + GAP + BOARD_SIZE * (CELL_PIX + GAP) + 60);
         window.draw(lb2);
 
         // Current turn or winner (top-center)
